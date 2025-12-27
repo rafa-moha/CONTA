@@ -1,28 +1,31 @@
 import customtkinter as ctk
-from tkinter import messagebox
+from tkinter import messagebox  # Important pour les popups
 import glob
 import os
 import sys
 import subprocess
-import requests # Pour la mise à jour
+import requests 
 from datetime import datetime
 
 # --- IMPORTATION DES MODULES LOCAUX ---
 try:
     from src.metier import Comptabilite
     from src.rapports import GenerateurRapport
-except ImportError:
-    messagebox.showerror("Erreur Fatale", "Impossible de trouver les modules dans le dossier 'src'.\nVérifiez la structure des dossiers.")
+    from src.ui_effects import NotificationToast, LoadingOverlay
+except ImportError as e:
+    # On utilise print car messagebox n'est peut-être pas encore chargé si tkinter plante
+    print(f"Erreur d'import : {e}")
     sys.exit()
 
-# --- CONFIGURATION MISE À JOUR ---
+# --- CONFIGURATION MISE À JOUR (GITHUB RAW) ---
+# C'est ici que tu mets la version actuelle de ton logiciel
 VERSION_ACTUELLE = "1.0.3"
 
-# Remplace par TES liens GitHub Raw (Attention à bien mettre 'raw.githubusercontent.com')
+# Remplace ceci par TON lien GitHub RAW (comme vu précédemment)
 BASE_URL = "https://raw.githubusercontent.com/rafa-moha/CONTA/refs/heads/main"
 
-URL_VER = f"{BASE_URL}/version.txt"
-URL_UPD = f"{BASE_URL}/updater.py"
+URL_VERSION = f"{BASE_URL}/version.txt"
+URL_UPDATER = f"{BASE_URL}/updater.py"
 
 # --- CONFIGURATION DOSSIERS ---
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
@@ -61,7 +64,7 @@ PLAN_COMPTABLE = {
 }
 
 # =============================================================================
-# FENÊTRE 1 : SAISIE SIMPLE (INTELLIGENTE)
+# FENÊTRE 1 : SAISIE SIMPLE
 # =============================================================================
 class FenetreSaisieSimple(ctk.CTkToplevel):
     def __init__(self, parent, titre, mode, callback):
@@ -71,25 +74,21 @@ class FenetreSaisieSimple(ctk.CTkToplevel):
         self.callback = callback
         self.liste_triee = sorted(PLAN_COMPTABLE.keys())
         
-        # 1. Date
         ctk.CTkLabel(self, text="Date (AAAA-MM-JJ) :").pack(pady=(15, 5))
         self.entry_date = ctk.CTkEntry(self, width=300)
         self.entry_date.insert(0, datetime.now().strftime("%Y-%m-%d"))
         self.entry_date.pack(pady=5)
         
-        # 2. Libellé
         ctk.CTkLabel(self, text="Libellé / Description :").pack(pady=5)
         self.entry_lib = ctk.CTkEntry(self, width=300)
         self.entry_lib.pack(pady=5)
         
-        # 3. Montant
         ctk.CTkLabel(self, text="Montant Total (DH) :").pack(pady=5)
         self.entry_mt = ctk.CTkEntry(self, width=300)
         self.entry_mt.pack(pady=5)
         
         ctk.CTkFrame(self, height=2, fg_color="gray").pack(pady=15, padx=40, fill="x")
         
-        # 4. Comptes (Dynamique)
         ctk.CTkLabel(self, text="Compte DÉBIT (Entrée/Charge)", text_color="#55FF55").pack()
         self.menu_deb = ctk.CTkOptionMenu(self, values=self.liste_triee, width=300, fg_color="#225522", command=self.verifier_type_paiement)
         self.menu_deb.pack(pady=5)
@@ -98,13 +97,11 @@ class FenetreSaisieSimple(ctk.CTkToplevel):
         self.menu_cred = ctk.CTkOptionMenu(self, values=self.liste_triee, width=300, fg_color="#552222", command=self.verifier_type_paiement)
         self.menu_cred.pack(pady=5)
         
-        # 5. Référence Dynamique
         self.lbl_ref = ctk.CTkLabel(self, text="N° Reçu / Facture :", text_color="orange")
         self.lbl_ref.pack(pady=(15, 5))
         self.entry_ref = ctk.CTkEntry(self, width=300, placeholder_text="Optionnel")
         self.entry_ref.pack(pady=5)
         
-        # Pré-remplissage
         if mode == "ACHAT":
             self.menu_deb.set("6111 - Achats marchandises")
             self.menu_cred.set("5141 - Banque (DH)")
@@ -113,13 +110,11 @@ class FenetreSaisieSimple(ctk.CTkToplevel):
             self.menu_cred.set("7111 - Ventes marchandises")
             
         self.verifier_type_paiement(None)
-        
         ctk.CTkButton(self, text="VALIDER", command=self.valider, height=40, font=("Arial", 14, "bold")).pack(pady=30)
 
     def verifier_type_paiement(self, choix):
         val_deb = self.menu_deb.get()
         val_cred = self.menu_cred.get()
-        # Si Banque est impliquée
         if "5141" in val_deb or "5141" in val_cred:
             self.lbl_ref.configure(text="Numéro de Chèque / Virement :")
             self.entry_ref.configure(placeholder_text="Ex: CHQ-890221")
@@ -135,16 +130,14 @@ class FenetreSaisieSimple(ctk.CTkToplevel):
             cd = PLAN_COMPTABLE[self.menu_deb.get()]
             cc = PLAN_COMPTABLE[self.menu_cred.get()]
             ref = self.entry_ref.get()
-            
             if not l: raise ValueError
-            
             self.callback(d, l, m, cd, cc, ref)
             self.destroy()
         except: messagebox.showerror("Erreur", "Champs invalides (Vérifiez le montant).")
 
 
 # =============================================================================
-# FENÊTRE 2 : SAISIE MULTIPLE (VENTILATION)
+# FENÊTRE 2 : SAISIE MULTIPLE
 # =============================================================================
 class FenetreSaisieComplexe(ctk.CTkToplevel):
     def __init__(self, parent, callback):
@@ -155,47 +148,36 @@ class FenetreSaisieComplexe(ctk.CTkToplevel):
         self.lignes = []
         self.liste_triee = sorted(PLAN_COMPTABLE.keys())
         
-        # Header
         frm_top = ctk.CTkFrame(self)
         frm_top.pack(fill="x", padx=10, pady=10)
         
         self.entry_date = ctk.CTkEntry(frm_top, width=120)
         self.entry_date.insert(0, datetime.now().strftime("%Y-%m-%d"))
         self.entry_date.pack(side="left", padx=5)
-        
-        self.entry_lib_main = ctk.CTkEntry(frm_top, width=400, placeholder_text="Libellé Général (ex: Paiement Salaire + Charges)")
+        self.entry_lib_main = ctk.CTkEntry(frm_top, width=400, placeholder_text="Libellé Général")
         self.entry_lib_main.pack(side="left", fill="x", expand=True, padx=5)
         
-        # Ajout Ligne
         frm_add = ctk.CTkFrame(self)
         frm_add.pack(fill="x", padx=10)
         
         self.menu_cpt = ctk.CTkOptionMenu(frm_add, values=self.liste_triee, width=300)
         self.menu_cpt.pack(side="left", padx=5, pady=10)
-        
         self.ent_d = ctk.CTkEntry(frm_add, width=100, placeholder_text="Débit")
         self.ent_d.pack(side="left", padx=5)
-        
         self.ent_c = ctk.CTkEntry(frm_add, width=100, placeholder_text="Crédit")
         self.ent_c.pack(side="left", padx=5)
-        
         ctk.CTkButton(frm_add, text="+ Ajouter", width=80, command=self.ajouter).pack(side="left", padx=5)
         
-        # Liste
         self.scroll = ctk.CTkScrollableFrame(self, height=300)
         self.scroll.pack(fill="both", expand=True, padx=10, pady=5)
         
-        # Totaux
         frm_bot = ctk.CTkFrame(self, height=60)
         frm_bot.pack(fill="x", side="bottom")
-        
         self.lbl_d = ctk.CTkLabel(frm_bot, text="D: 0.00", font=("Arial", 14, "bold"))
         self.lbl_d.pack(side="left", padx=20)
-        
         self.lbl_c = ctk.CTkLabel(frm_bot, text="C: 0.00", font=("Arial", 14, "bold"))
         self.lbl_c.pack(side="left", padx=20)
-        
-        self.btn_ok = ctk.CTkButton(frm_bot, text="VALIDER (Déséquilibré)", state="disabled", fg_color="gray", width=200, command=self.valider_tout)
+        self.btn_ok = ctk.CTkButton(frm_bot, text="VALIDER", state="disabled", fg_color="gray", command=self.valider_tout)
         self.btn_ok.pack(side="right", padx=20, pady=15)
 
     def ajouter(self):
@@ -205,25 +187,16 @@ class FenetreSaisieComplexe(ctk.CTkToplevel):
             txt = self.menu_cpt.get()
             
             if d==0 and c==0: return
-            if d>0 and c>0:
-                messagebox.showerror("Erreur", "Une ligne ne peut pas être Débit et Crédit en même temps")
-                return
-            
             self.lignes.append({"compte": PLAN_COMPTABLE[txt], "nom": txt, "debit": d, "credit": c, "ref": ""})
             
-            # Affichage Visuel
             row = ctk.CTkFrame(self.scroll, height=30)
             row.pack(fill="x", pady=2)
-            lbl_text = f"{txt}   |   Débit: {d}   |   Crédit: {c}"
-            ctk.CTkLabel(row, text=lbl_text, anchor="w").pack(side="left", padx=10)
+            ctk.CTkLabel(row, text=f"{txt} | D: {d} | C: {c}", anchor="w").pack(side="left", padx=10)
             
-            # Reset
             self.ent_d.delete(0, "end")
             self.ent_c.delete(0, "end")
             self.calculer()
-            
-        except ValueError:
-            messagebox.showerror("Erreur", "Montant invalide")
+        except ValueError: messagebox.showerror("Erreur", "Montant invalide")
 
     def calculer(self):
         td = sum(l['debit'] for l in self.lignes)
@@ -232,27 +205,19 @@ class FenetreSaisieComplexe(ctk.CTkToplevel):
         self.lbl_c.configure(text=f"Total Crédit : {tc:.2f}")
         
         if abs(td-tc) < 0.01 and td > 0:
-            self.btn_ok.configure(state="normal", fg_color="green", text="VALIDER L'ÉCRITURE")
+            self.btn_ok.configure(state="normal", fg_color="green", text="VALIDER")
         else:
-            self.btn_ok.configure(state="disabled", fg_color="gray", text=f"Déséquilibré (Diff: {abs(td-tc):.2f})")
+            self.btn_ok.configure(state="disabled", fg_color="gray", text=f"Déséquilibré")
 
     def valider_tout(self):
         date = self.entry_date.get()
         lib = self.entry_lib_main.get()
         if not lib: 
-            messagebox.showerror("Erreur", "Libellé général manquant")
+            messagebox.showerror("Erreur", "Libellé manquant")
             return
-            
         final = []
         for l in self.lignes:
-            final.append({
-                "date": date, 
-                "libelle": lib, 
-                "compte": l['compte'], 
-                "debit": l['debit'], 
-                "credit": l['credit'], 
-                "ref": ""
-            })
+            final.append({"date": date, "libelle": lib, "compte": l['compte'], "debit": l['debit'], "credit": l['credit'], "ref": ""})
         self.callback(date, final)
         self.destroy()
 
@@ -263,8 +228,9 @@ class FenetreSaisieComplexe(ctk.CTkToplevel):
 class AppManager(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title(f"Compta Pro Maroc v{VERSION_ACTUELLE}")
-        self.geometry("450x600")
+        # ICI ON UTILISE LA BONNE VARIABLE
+        self.title(f"Compta Pro Maroc v{VERSION_ACTUELLE}") 
+        self.geometry("650x800")
         
         self.rapports = GenerateurRapport()
         self.compta = None
@@ -282,7 +248,6 @@ class AppManager(ctk.CTk):
         ctk.CTkLabel(self.main, text="LOGICIEL COMPTABLE", font=("Arial", 28, "bold")).pack(pady=(40, 10))
         ctk.CTkLabel(self.main, text=f"Version {VERSION_ACTUELLE}", text_color="gray").pack(pady=(0, 30))
         
-        # Liste des entreprises trouvées dans data/
         files = glob.glob(os.path.join(DATA_DIR, "*.db"))
         
         if files:
@@ -295,55 +260,46 @@ class AppManager(ctk.CTk):
         else:
             ctk.CTkLabel(self.main, text="Aucune entreprise trouvée.").pack(pady=10)
             
-        # Créer nouvelle
         self.ent_new = ctk.CTkEntry(self.main, placeholder_text="Nom nouvelle entreprise...", width=300)
         self.ent_new.pack(pady=(30, 10))
         ctk.CTkButton(self.main, text="Créer et Ouvrir", fg_color="green", command=lambda: self.charger(self.ent_new.get())).pack()
 
-        # Bouton Mise à jour
-        ctk.CTkButton(self.main, text="♻️ Vérifier Mise à jour", fg_color="#444", command=self.verifier_mise_a_jour).pack(side="bottom", pady=20)
+        # Bouton Mise à jour (GitHub Raw)
+        ctk.CTkButton(self.main, text="♻️ Vérifier Mise à jour (En ligne)", fg_color="#444", command=self.verifier_mise_a_jour).pack(side="bottom", pady=20)
 
-    # --- CHARGEMENT DU DOSSIER ---
+    # --- CHARGEMENT ---
     def charger(self, nom):
         if not nom: return
-        # On remplace les espaces par des tirets pour éviter les bugs de fichiers
         nom_propre = nom.replace(" ", "_")
         self.compta = Comptabilite(nom_propre)
         self.nom_ent = nom_propre
         self.dashboard()
 
-    # --- TABLEAU DE BORD ---
+    # --- DASHBOARD ---
     def dashboard(self):
         for w in self.main.winfo_children(): w.destroy()
         
-        # Header
         top = ctk.CTkFrame(self.main, fg_color="#222", corner_radius=0)
         top.pack(fill="x")
         ctk.CTkButton(top, text="< Changer", width=80, fg_color="transparent", border_width=1, command=self.accueil).pack(side="left", padx=15, pady=15)
         ctk.CTkLabel(top, text=f"SOCIÉTÉ : {self.nom_ent.upper()}", font=("Arial", 18, "bold")).pack(side="left", padx=20)
         
-        # Section Saisie
         ctk.CTkLabel(self.main, text="SAISIE DES OPÉRATIONS", font=("Arial", 14)).pack(pady=(30, 10))
         
         row_btn = ctk.CTkFrame(self.main, fg_color="transparent")
         row_btn.pack(fill="x", padx=40)
         
-        # Bouton Achat (Rouge)
-        ctk.CTkButton(row_btn, text="ACHAT / DÉPENSE", fg_color="#C0392B", height=50, 
+        ctk.CTkButton(row_btn, text="ACHAT / DÉPENSE", fg_color="#C0392B", height=50, hover_color="#E74C3C",
                       command=lambda: self.ouvrir_simple("ACHAT")).pack(side="left", fill="x", expand=True, padx=5)
         
-        # Bouton Vente (Vert)
-        ctk.CTkButton(row_btn, text="VENTE / RECETTE", fg_color="#27AE60", height=50, 
+        ctk.CTkButton(row_btn, text="VENTE / RECETTE", fg_color="#27AE60", height=50, hover_color="#2ECC71",
                       command=lambda: self.ouvrir_simple("VENTE")).pack(side="right", fill="x", expand=True, padx=5)
         
-        # Bouton Complexe (Bleu)
-        ctk.CTkButton(self.main, text="ÉCRITURE MULTIPLE / OD\n(Salaires, TVA, Opérations Diverses...)", 
-                      height=60, fg_color="#2980B9", font=("Arial", 13, "bold"), 
+        ctk.CTkButton(self.main, text="ÉCRITURE MULTIPLE / OD", height=60, fg_color="#2980B9", font=("Arial", 13, "bold"), 
                       command=self.ouvrir_complexe).pack(padx=40, pady=10, fill="x")
         
         ctk.CTkFrame(self.main, height=2, fg_color="gray").pack(pady=30, padx=40, fill="x")
         
-        # Section Exports
         ctk.CTkLabel(self.main, text="RAPPORTS & EXPORTS", font=("Arial", 14)).pack(pady=(0, 10))
         
         row_exp = ctk.CTkFrame(self.main, fg_color="transparent")
@@ -351,18 +307,14 @@ class AppManager(ctk.CTk):
         
         ctk.CTkButton(row_exp, text="JOURNAL (Excel)", command=self.export_excel).pack(side="left", fill="x", expand=True, padx=5)
         ctk.CTkButton(row_exp, text="BILAN (PDF Détaillé)", command=self.export_pdf).pack(side="right", fill="x", expand=True, padx=5)
-        
-        self.lbl_msg = ctk.CTkLabel(self.main, text="", font=("Arial", 12))
-        self.lbl_msg.pack(pady=20)
 
-    # --- FONCTIONS D'OUVERTURE DE FENÊTRES ---
+    # --- ACTIONS ---
     def ouvrir_simple(self, mode):
         FenetreSaisieSimple(self, f"Saisie {mode}", mode, self.sauver_simple)
 
     def ouvrir_complexe(self):
         FenetreSaisieComplexe(self, self.sauver_complexe)
 
-    # --- CALLBACKS DE SAUVEGARDE ---
     def sauver_simple(self, d, l, m, deb, cred, ref):
         ok = self.compta.saisir_operation(d, l, m, deb, cred, ref)
         self.msg(ok, f"Enregistré : {l} ({m} DH)")
@@ -373,54 +325,76 @@ class AppManager(ctk.CTk):
 
     def msg(self, succes, txt):
         if succes:
-            self.lbl_msg.configure(text=f"✅ {txt}", text_color="#2ECC71")
+            NotificationToast(self, f"✅ {txt}", "green")
         else:
-            self.lbl_msg.configure(text="❌ Erreur lors de l'enregistrement", text_color="red")
+            NotificationToast(self, "❌ Erreur lors de l'enregistrement", "red")
 
-    # --- EXPORTS ---
     def export_excel(self):
+        LoadingOverlay(self, "Génération Excel...")
+        self.update()
+        self.after(500)
+        
         data = self.compta.db.recuperer_journal()
         path = self.rapports.exporter_journal_excel(data, self.nom_ent)
-        if path: messagebox.showinfo("Succès", f"Fichier Excel créé :\n{path}")
-        else: messagebox.showerror("Erreur", "Impossible de créer le fichier.")
+        
+        # On ferme le loading (Note: Idéalement LoadingOverlay devrait être détruit proprement, 
+        # ici on assume qu'il est modal ou on le laisse, mais pour simplifier on le laisse se fermer 
+        # avec le prochain rafraichissement ou on utilise une ref. 
+        # Pour faire simple dans ce script unique :)
+        for child in self.winfo_children():
+            if isinstance(child, LoadingOverlay): child.close()
+
+        if path: 
+            NotificationToast(self, "Excel exporté !", "blue")
+            os.startfile(os.path.dirname(path))
+        else: 
+            messagebox.showerror("Erreur", "Impossible de créer le fichier.")
 
     def export_pdf(self):
+        LoadingOverlay(self, "Génération PDF...")
+        self.update()
+        self.after(500)
+        
         l_actif, t_actif, l_passif, t_passif = self.compta.obtenir_donnees_bilan_detaille()
         path = self.rapports.generer_bilan_pdf(self.nom_ent, l_actif, t_actif, l_passif, t_passif)
-        if path: messagebox.showinfo("Succès", f"Bilan PDF créé :\n{path}")
-        else: messagebox.showerror("Erreur", "Impossible de créer le PDF.")
 
-    # --- MISE À JOUR AUTO ---
+        for child in self.winfo_children():
+            if isinstance(child, LoadingOverlay): child.close()
+
+        if path: 
+            NotificationToast(self, "PDF généré !", "blue")
+            os.startfile(os.path.dirname(path))
+        else: 
+            messagebox.showerror("Erreur", "Impossible de créer le PDF.")
+
+    # --- MISE À JOUR AUTO (GITHUB) ---
     def verifier_mise_a_jour(self):
         try:
-            print("Vérification maj...")
-            r = requests.get(URL_VERSION, timeout=3)
+            print(f"Checking: {URL_VERSION}")
+            r = requests.get(URL_VERSION, timeout=5) # Pas de headers spécial pour GitHub Raw
             if r.status_code == 200:
                 v_serv = r.text.strip()
                 if v_serv > VERSION_ACTUELLE:
-                    if messagebox.askyesno("Mise à jour", f"Version {v_serv} disponible. Mettre à jour ?"):
+                    if messagebox.askyesno("Mise à jour", f"Version {v_serv} disponible.\nTélécharger maintenant ?"):
                         self.lancer_mise_a_jour()
                 else:
-                    messagebox.showinfo("Info", "Vous êtes à jour.")
+                    NotificationToast(self, "Vous êtes à jour.", "blue")
             else:
-                messagebox.showerror("Erreur", "Impossible de joindre le serveur.")
+                messagebox.showerror("Erreur", f"Erreur serveur : {r.status_code}")
         except Exception as e:
-            messagebox.showerror("Erreur", f"Erreur réseau : {e}")
+            messagebox.showerror("Erreur", f"Impossible de joindre GitHub.\n{e}")
 
     def lancer_mise_a_jour(self):
         try:
-            # Télécharge l'updater
             r = requests.get(URL_UPDATER)
             with open("updater.py", "wb") as f:
                 f.write(r.content)
             
-            # Lance l'updater
             if sys.platform == "win32":
                 subprocess.Popen(["python", "updater.py"], shell=True)
             else:
                 subprocess.Popen(["python3", "updater.py"])
             
-            # Ferme l'app
             self.destroy()
             sys.exit()
         except Exception as e:
@@ -429,4 +403,3 @@ class AppManager(ctk.CTk):
 if __name__ == "__main__":
     app = AppManager()
     app.mainloop()
-
