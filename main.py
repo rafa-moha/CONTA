@@ -16,7 +16,7 @@ except ImportError:
     sys.exit()
 
 # --- CONFIGURATION MISE À JOUR ---
-VERSION = "1.0"
+VERSION_ACTUELLE = "1.0"
 
 # Remplace par TES liens GitHub Raw (Attention à bien mettre 'raw.githubusercontent.com')
 BASE_URL = "https://raw.githubusercontent.com/rafa-moha/CONTA/refs/heads/main"
