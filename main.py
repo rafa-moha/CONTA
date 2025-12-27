@@ -16,7 +16,7 @@ except ImportError:
     sys.exit()
 
 # --- CONFIGURATION MISE À JOUR ---
-VERSION_ACTUELLE = "1.0"
+VERSION_ACTUELLE = "1.0.3"
 
 # Remplace par TES liens GitHub Raw (Attention à bien mettre 'raw.githubusercontent.com')
 BASE_URL = "https://raw.githubusercontent.com/rafa-moha/CONTA/refs/heads/main"
@@ -429,3 +429,4 @@ class AppManager(ctk.CTk):
 if __name__ == "__main__":
     app = AppManager()
     app.mainloop()
+
