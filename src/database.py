@@ -40,7 +40,9 @@ class DatabaseManager:
     def solde_compte_commencant_par(self, prefixe):
         self.cursor.execute(f"SELECT SUM(debit), SUM(credit) FROM journal WHERE CAST(compte_num AS TEXT) LIKE '{prefixe}%'")
         res = self.cursor.fetchone()
-        return (res[0] or 0.0), (res[1] or 0.0)
+        debit = res[0] if res[0] else 0.0
+        credit = res[1] if res[1] else 0.0
+        return debit, credit
 
     def recuperer_soldes_par_classe(self, classes):
         cond = " OR ".join([f"CAST(compte_num AS TEXT) LIKE '{c}%'" for c in classes])
