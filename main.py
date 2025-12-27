@@ -16,10 +16,13 @@ except ImportError:
     sys.exit()
 
 # --- CONFIGURATION MISE À JOUR ---
-VERSION_ACTUELLE = "20.3"
-# Remplace ces liens par les tiens quand tu auras ton serveur
-URL_VERSION = "https://twinz.ct.ws/compta_update/version.txt" 
-URL_UPDATER = "https://twinz.ct.ws/compta_update/updater.py"
+VERSION = "1.0"
+
+# Remplace par TES liens GitHub Raw (Attention à bien mettre 'raw.githubusercontent.com')
+BASE_URL = "https://raw.githubusercontent.com/rafa-moha/CONTA/refs/heads/main"
+
+URL_VER = f"{BASE_URL}/version.txt"
+URL_UPD = f"{BASE_URL}/updater.py"
 
 # --- CONFIGURATION DOSSIERS ---
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
