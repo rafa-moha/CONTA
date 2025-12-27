@@ -1,51 +1,43 @@
-import os
-import time
-import requests
-import subprocess
-import sys
+import os, time, requests, subprocess, sys
 
-# --- CONFIGURATION ---
-SERVER_URL = "https://twinz.ct.ws/compta_update/" # Change ceci !
-FILES_TO_UPDATE = [
-    "main.py",
-    "src/database.py",
-    "src/metier.py",
-    "src/rapports.py",
+# Remplace par ton lien de base GitHub Raw
+SERVER = "https://raw.githubusercontent.com/rafa-moha/CONTA/refs/heads/main"
+
+FILES = [
+    "main.py", 
+    "src/metier.py", 
+    "src/rapports.py", 
+    "src/database.py", 
+    "src/ui_effects.py",
     "version.txt"
-
 ]
-MAIN_APP = "main.py"
-
-def update():
-    print("⏳ Attente de la fermeture de l'application...")
-    time.sleep(2) # On attend 2 secondes que main.py se ferme complètement
-
-    print("🚀 Démarrage de la mise à jour...")
-    
-    for filename in FILES_TO_UPDATE:
-        url = f"{SERVER_URL}/{filename}"
-        print(f"⬇️ Téléchargement : {filename}...")
-        
-        try:
-            # Téléchargement du fichier
-            response = requests.get(url)
-            if response.status_code == 200:
-                # On écrit le fichier (en écrasant l'ancien)
-                with open(filename, "wb") as f:
-                    f.write(response.content)
-            else:
-                print(f"❌ Erreur téléchargement {filename} (Code {response.status_code})")
-        except Exception as e:
-            print(f"❌ Erreur : {e}")
-
-    print("✅ Mise à jour terminée !")
-    print("🔄 Relancement de l'application...")
-    
-    # Relancer l'application principale
-    if sys.platform == "win32":
-        os.system(f'start python {MAIN_APP}')
-    else:
-        os.system(f'python3 {MAIN_APP} &')
 
 if __name__ == "__main__":
-    update()
+    print("⏳ Fermeture de l'application...")
+    time.sleep(2) 
+    
+    print("🚀 Début de la mise à jour...")
+    for f in FILES:
+        try:
+            url = f"{SERVER}/{f}"
+            print(f"⬇️ Téléchargement : {url}")
+            
+            # GitHub accepte les requêtes directes sans User-Agent complexe
+            r = requests.get(url)
+            
+            if r.status_code == 200:
+                # Créer les dossiers si besoin
+                if "/" in f:
+                    os.makedirs(os.path.dirname(f), exist_ok=True)
+                    
+                with open(f, "wb") as file: 
+                    file.write(r.content)
+                print(f"✅ OK : {f}")
+            else:
+                print(f"❌ Erreur {r.status_code} sur {f}")
+        except Exception as e: 
+            print(f"❌ Erreur : {e}")
+    
+    print("🔄 Relancement...")
+    if sys.platform == "win32": os.system('start python main.py')
+    else: os.system('python3 main.py &')
