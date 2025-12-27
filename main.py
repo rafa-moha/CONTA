@@ -19,7 +19,7 @@ except ImportError as e:
 
 # --- CONFIGURATION MISE À JOUR (GITHUB RAW) ---
 # C'est ici que tu mets la version actuelle de ton logiciel
-VERSION_ACTUELLE = "2.0.1"
+VERSION_ACTUELLE = "2.0.2"
 
 # Remplace ceci par TON lien GitHub RAW (comme vu précédemment)
 BASE_URL = "https://raw.githubusercontent.com/rafa-moha/CONTA/refs/heads/main"
@@ -403,4 +403,5 @@ class AppManager(ctk.CTk):
 if __name__ == "__main__":
     app = AppManager()
     app.mainloop()
+
 
