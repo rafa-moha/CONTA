@@ -22,7 +22,7 @@ except ImportError as e:
     sys.exit()
 
 # --- CONFIGURATION GLOBALE ---
-VERSION_ACTUELLE = "1.0.0"
+VERSION_ACTUELLE = "2.2"
 
 # Configuration Mise à jour (GitHub Raw)
 BASE_GITHUB = "https://raw.githubusercontent.com/rafa-moha/CONTA/refs/heads/main" 
@@ -30,7 +30,7 @@ URL_VERSION = f"{BASE_GITHUB}/version.txt"
 URL_UPDATER = f"{BASE_GITHUB}/updater.py"
 
 # Configuration Site Web pour l'achat
-URL_ACHAT = "http://localhost/Compta.php"
+URL_ACHAT = "https://twinz.ct.ws/Compta"
 
 # Configuration Dossiers
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
@@ -447,5 +447,3 @@ class AppManager(ctk.CTk):
 if __name__ == "__main__":
     app = AppManager()
     app.mainloop()
-
-
