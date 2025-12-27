@@ -19,7 +19,7 @@ except ImportError as e:
 
 # --- CONFIGURATION MISE À JOUR (GITHUB RAW) ---
 # C'est ici que tu mets la version actuelle de ton logiciel
-VERSION_ACTUELLE = "1.0.3"
+VERSION_ACTUELLE = "1.0.4"
 
 # Remplace ceci par TON lien GitHub RAW (comme vu précédemment)
 BASE_URL = "https://raw.githubusercontent.com/rafa-moha/CONTA/refs/heads/main"
@@ -230,7 +230,7 @@ class AppManager(ctk.CTk):
         super().__init__()
         # ICI ON UTILISE LA BONNE VARIABLE
         self.title(f"Compta Pro Maroc v{VERSION_ACTUELLE}") 
-        self.geometry("650x800")
+        self.geometry("450x600")
         
         self.rapports = GenerateurRapport()
         self.compta = None
