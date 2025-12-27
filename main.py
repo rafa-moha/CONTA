@@ -22,7 +22,7 @@ except ImportError as e:
     sys.exit()
 
 # --- CONFIGURATION GLOBALE ---
-VERSION_ACTUELLE = "2.0.4"
+VERSION_ACTUELLE = "1.0.0"
 
 # Configuration Mise à jour (GitHub Raw)
 BASE_GITHUB = "https://raw.githubusercontent.com/rafa-moha/CONTA/refs/heads/main" 
@@ -447,4 +447,5 @@ class AppManager(ctk.CTk):
 if __name__ == "__main__":
     app = AppManager()
     app.mainloop()
+
 
