@@ -19,14 +19,19 @@ if __name__ == "__main__":
     print("🚀 Début de la mise à jour...")
     for f in FILES:
         try:
-            url = f"{SERVER}/{f}"
+            # ASTUCE ANTI-CACHE ICI AUSSI
+            timestamp = int(time.time())
+            # On construit l'URL avec le fichier ET le paramètre temps
+            url = f"{SERVER}/{f}?t={timestamp}"
+            
             print(f"⬇️ Téléchargement : {url}")
             
-            # GitHub accepte les requêtes directes sans User-Agent complexe
             r = requests.get(url)
             
             if r.status_code == 200:
-                # Créer les dossiers si besoin
+                # IMPORTANT : On sauvegarde sous le vrai nom 'f' (sans le ?t=...)
+                
+                # Création dossier si besoin
                 if "/" in f:
                     os.makedirs(os.path.dirname(f), exist_ok=True)
                     
