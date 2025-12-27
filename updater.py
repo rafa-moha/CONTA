@@ -1,4 +1,8 @@
-import os, time, requests, subprocess, sys
+import os
+import time  # <--- VÉRIFIE QUE CETTE LIGNE EST BIEN LÀ
+import requests
+import subprocess
+import sys
 
 # Remplace par ton lien de base GitHub Raw
 SERVER = "https://raw.githubusercontent.com/rafa-moha/CONTA/refs/heads/main"
@@ -19,10 +23,9 @@ if __name__ == "__main__":
     print("🚀 Début de la mise à jour...")
     for f in FILES:
         try:
-            # ASTUCE ANTI-CACHE ICI AUSSI
-            timestamp = int(time.time())
-            # On construit l'URL avec le fichier ET le paramètre temps
-            url = f"{SERVER}/{f}?t={timestamp}"
+           # ASTUCE ANTI-CACHE
+            timestamp = int(time.time()) # Ici time est utilisé pour le cache
+            url = f"{SERVER}/{f}?t={timestamp}
             
             print(f"⬇️ Téléchargement : {url}")
             
@@ -46,3 +49,4 @@ if __name__ == "__main__":
     print("🔄 Relancement...")
     if sys.platform == "win32": os.system('start python main.py')
     else: os.system('python3 main.py &')
+
