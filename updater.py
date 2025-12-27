@@ -12,7 +12,8 @@ FILES = [
     "src/metier.py", 
     "src/rapports.py", 
     "src/database.py", 
-    "src/ui_effects.py"
+    "src/ui_effects.py",
+    "version.txt"
 ]
 
 if __name__ == "__main__":
@@ -53,3 +54,4 @@ if __name__ == "__main__":
         os.system('start python main.py')
     else: 
         os.system('python3 main.py &')
+
