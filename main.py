@@ -1,10 +1,11 @@
 import customtkinter as ctk
-from tkinter import messagebox  # Important pour les popups
+from tkinter import messagebox
 import glob
 import os
 import sys
 import subprocess
 import requests 
+import time  # <--- AJOUTE CETTE LIGNE ICI (C'EST ELLE QUI MANQUAIT)
 from datetime import datetime
 
 # --- IMPORTATION DES MODULES LOCAUX ---
@@ -410,5 +411,6 @@ class AppManager(ctk.CTk):
 if __name__ == "__main__":
     app = AppManager()
     app.mainloop()
+
 
 
